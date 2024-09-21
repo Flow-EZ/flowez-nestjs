@@ -10,8 +10,8 @@ import {
   createAsyncClientOptions,
   createOptionsProvider,
   createRedisClientProviders,
-  RedisClient,
   redisClientsProvider,
+  RedisClient,
 } from './redis-client.provider';
 import { REDIS_MODULE_OPTIONS, REDIS_CLIENT } from './redis.constants';
 import { RedisService } from './redis.service';
@@ -46,7 +46,9 @@ export class RedisCoreModule implements OnApplicationShutdown {
   /* forRootAsync */
   static forRootAsync(options: RedisModuleAsyncOptions): DynamicModule {
     if (!options.useFactory && !options.useClass && !options.useExisting) {
-      throw new Error('The asynchronous configurations are missing. Expected one of: "useFactory", "useClass", "useExisting".')
+      throw new Error(
+        'The asynchronous configurations are missing. Expected one of: "useFactory", "useClass", "useExisting".',
+      );
     }
 
     const redisClientProviders = createRedisClientProviders();
@@ -59,21 +61,23 @@ export class RedisCoreModule implements OnApplicationShutdown {
         redisClientsProvider(),
         RedisService,
         ...redisClientProviders,
-        ...(options.extraProviders ?? [])
+        ...(options.extraProviders ?? []),
       ],
       exports: [RedisService, ...redisClientProviders],
     };
   }
 
   async onApplicationShutdown(): Promise<void> {
-    const closeConnection = ({ clients, name }) => (options) => {
-      const key = options.clientName || name;
-      const client = clients.get(key);
+    const closeConnection =
+      ({ clients, name }) =>
+      (options) => {
+        const key = options.clientName || name;
+        const client = clients.get(key);
 
-      if (client && !options.keepAlive) {
-        client.disconnect();
-      }
-    };
+        if (client && !options.keepAlive) {
+          client.disconnect();
+        }
+      };
 
     const closeClientConnection = closeConnection(this.redisClient);
 

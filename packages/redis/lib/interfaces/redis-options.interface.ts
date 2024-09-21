@@ -1,4 +1,9 @@
-import { FactoryProvider, ModuleMetadata, Provider, Type } from '@nestjs/common';
+import {
+  FactoryProvider,
+  ModuleMetadata,
+  Provider,
+  Type,
+} from '@nestjs/common';
 import { Redis, RedisOptions } from 'ioredis';
 
 export interface RedisModuleOptions extends RedisOptions {

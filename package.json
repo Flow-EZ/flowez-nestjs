@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "format": "prettier --write .",
-    "check": "prettier --check ."
+    "check": "prettier --check .",
+    "build": "pnpm -r --filter=./packages/* run build"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +29,7 @@
     "picocolors": "^1.1.0",
     "prettier": "3.3.3",
     "release-it": "^17.6.0",
+    "release-it-pnpm": "^4.6.3",
     "rimraf": "^6.0.1",
     "simple-git-hooks": "^2.11.1",
     "supertest": "^7.0.0",
@@ -47,5 +49,8 @@
       "eslint --fix",
       "prettier --parser=typescript --write"
     ]
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

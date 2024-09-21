@@ -1,10 +1,10 @@
 import { Inject } from '@nestjs/common';
-import { DEFAULT_REDIS_CLIENT } from './redis.constants';
+import { DEFAULT_MINIO_CLIENT } from './minio.constants';
 
 export const namespaces = new Map<string, string>();
 
-export const InjectRedis = (
-  clientName = DEFAULT_REDIS_CLIENT,
+export const InjectMinio = (
+  clientName = DEFAULT_MINIO_CLIENT,
 ): ParameterDecorator => {
   namespaces.set(clientName, clientName);
   return Inject(clientName);

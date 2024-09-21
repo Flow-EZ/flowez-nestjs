@@ -1,0 +1,14 @@
+{
+  "plugins": {
+    "release-it-pnpm": {}
+  },
+  "github": {
+    "release": false
+  },
+  "git": {
+    "commitMessage": "chore: release ${version}"
+  },
+  "hooks": {
+    "after:release": "echo Successfully released ${name} v${version} to ${repo.repository}."
+  }
+}
