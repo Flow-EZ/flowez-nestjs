@@ -1,56 +1,101 @@
-# NestJS IORedis
+# @flow-ez/nestjs-redis
 
-<a href="https://www.npmjs.com/package/@flowez/nestjs-ioredis"><img src="https://img.shields.io/npm/v/@flowez/nestjs-ioredis.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/package/@flowez/nestjs-ioredis"><img src="https://img.shields.io/npm/l/@flowez/nestjs-ioredis.svg" alt="Package License" /></a>
+NestJS 的 Redis 模块，基于 [ioredis](https://github.com/redis/ioredis) 封装，支持多客户端实例、异步配置和自动连接管理。
 
-## Table of Contents
+## 特性
 
-- [Description](#description)
-- [Installation](#installation)
-- [Examples](#examples)
-- [License](#license)
+- 支持同步 (`forRoot`) 和异步 (`forRootAsync`) 配置
+- 支持多 Redis 客户端实例
+- 支持通过 URL 或配置对象连接
+- 全局模块，注册一次即可在任意位置注入
+- 应用关闭时自动断开连接
+- 提供 `@InjectRedis()` 装饰器，方便注入客户端
+- 提供 `RedisService` 服务，统一管理所有客户端
 
-## Description
-
-Integrates IORedis with Nest
-
-## Installation
+## 安装
 
 ```bash
-npm install @flowez/nestjs-ioredis ioredis
+pnpm add @flow-ez/nestjs-redis
 ```
 
-You can also use the interactive CLI
+需要同时安装 peer dependencies：
 
-```sh
-npx nestjs-modules
+```bash
+pnpm add @nestjs/common @nestjs/core ioredis
 ```
 
-## Examples
+## 快速开始
 
-Let's register the RedisModule in `app.module.ts`
+### 基础配置
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { RedisModule } from '@flowez/nestjs-ioredis';
+import { RedisModule } from '@flow-ez/nestjs-redis';
 
 @Module({
-  imports: [RedisModule.register(options)],
+  imports: [
+    RedisModule.forRoot({
+      host: 'localhost',
+      port: 6379,
+      password: 'your-password',
+      db: 0,
+    }),
+  ],
 })
 export class AppModule {}
 ```
 
-With Async
+### 通过 URL 连接
+
+```typescript
+RedisModule.forRoot({
+  url: 'redis://:password@localhost:6379/0',
+});
+```
+
+### 注入使用
+
+使用 `@InjectRedis()` 装饰器直接注入 ioredis 客户端实例：
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@flow-ez/nestjs-redis';
+import { Redis } from 'ioredis';
+
+@Injectable()
+export class CatsService {
+  constructor(@InjectRedis() private readonly redis: Redis) {}
+
+  async findAll(): Promise<string[]> {
+    return this.redis.lrange('cats', 0, -1);
+  }
+
+  async create(cat: string): Promise<void> {
+    await this.redis.rpush('cats', cat);
+  }
+}
+```
+
+## 异步配置
+
+### useFactory
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { RedisModule } from '@flowez/nestjs-ioredis';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RedisModule } from '@flow-ez/nestjs-redis';
 
 @Module({
   imports: [
+    ConfigModule.forRoot(),
     RedisModule.forRootAsync({
-      useFactory: (configService: ConfigService) => configService.get('redis'), // or use async method
-      //useFactory: async (configService: ConfigService) => configService.get('redis'),
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        host: configService.get('REDIS_HOST'),
+        port: configService.get<number>('REDIS_PORT'),
+        password: configService.get('REDIS_PASSWORD'),
+        db: configService.get<number>('REDIS_DB'),
+      }),
       inject: [ConfigService],
     }),
   ],
@@ -58,71 +103,141 @@ import { RedisModule } from '@flowez/nestjs-ioredis';
 export class AppModule {}
 ```
 
-And the config file look like this
-With single client
-
-```typescript
-export default {
-  host: process.env.REDIS_HOST,
-  port: parseInt(process.env.REDIS_PORT),
-  db: parseInt(process.env.REDIS_DB),
-  password: process.env.REDIS_PASSWORD,
-  keyPrefix: process.env.REDIS_PRIFIX,
-};
-Or;
-export default {
-  url: 'redis://:authpassword@127.0.0.1:6380/4',
-};
-```
-
-With custom error handler
-
-```typescript
-export default {
-  url: 'redis://:authpassword@127.0.0.1:6380/4',
-  onClientReady: (client) => {
-    client.on('error', (err) => {});
-  },
-};
-```
-
-With multi client
-
-```typescript
-export default [
-  {
-    clientName: 'test1',
-    url: 'redis://:authpassword@127.0.0.1:6380/4',
-  },
-  {
-    clientName: 'test2',
-    host: process.env.REDIS_HOST,
-    port: parseInt(process.env.REDIS_PORT),
-    db: parseInt(process.env.REDIS_DB),
-    password: process.env.REDIS_PASSWORD,
-    keyPrefix: process.env.REDIS_PRIFIX,
-  },
-];
-```
-
-And use in your service
+### useClass
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { RedisService } from '@flowez/nestjs-ioredis';
+import { RedisOptionsFactory, RedisModuleOptions } from '@flow-ez/nestjs-redis';
 
 @Injectable()
-export class TestService {
+export class RedisConfigService implements RedisOptionsFactory {
+  createRedisOptions(): RedisModuleOptions {
+    return {
+      host: 'localhost',
+      port: 6379,
+    };
+  }
+}
+
+@Module({
+  imports: [
+    RedisModule.forRootAsync({
+      useClass: RedisConfigService,
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### useExisting
+
+```typescript
+@Module({
+  imports: [
+    RedisModule.forRootAsync({
+      imports: [ConfigModule],
+      useExisting: RedisConfigService,
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+## 多客户端
+
+支持同时注册多个 Redis 客户端，通过 `clientName` 区分：
+
+```typescript
+RedisModule.forRoot([
+  {
+    clientName: 'cache',
+    host: 'localhost',
+    port: 6379,
+    db: 0,
+  },
+  {
+    clientName: 'queue',
+    host: 'localhost',
+    port: 6379,
+    db: 1,
+  },
+]);
+```
+
+注入指定客户端：
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@flow-ez/nestjs-redis';
+import { Redis } from 'ioredis';
+
+@Injectable()
+export class CacheService {
+  constructor(@InjectRedis('cache') private readonly redis: Redis) {}
+}
+
+@Injectable()
+export class QueueService {
+  constructor(@InjectRedis('queue') private readonly redis: Redis) {}
+}
+```
+
+## RedisService
+
+除了通过装饰器注入，还可以使用 `RedisService` 动态获取客户端：
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { RedisService } from '@flow-ez/nestjs-redis';
+
+@Injectable()
+export class AppService {
   constructor(private readonly redisService: RedisService) {}
-  async root(): Promise<boolean> {
-    const client = await this.redisService.getClient('test');
-    return true;
+
+  async someMethod() {
+    // 获取默认客户端
+    const client = this.redisService.getClient();
+
+    // 获取指定客户端
+    const cacheClient = this.redisService.getClient('cache');
+
+    // 获取所有客户端
+    const allClients = this.redisService.getClients();
   }
 }
 ```
 
-That's it!
+## onClientReady 回调
+
+可以在客户端创建完成后执行回调：
+
+```typescript
+RedisModule.forRoot({
+  host: 'localhost',
+  port: 6379,
+  onClientReady: (client) => {
+    client.on('error', (err) => {
+      console.error('Redis Client Error:', err);
+    });
+    client.on('connect', () => {
+      console.log('Redis Client Connected');
+    });
+  },
+});
+```
+
+## 配置项
+
+`RedisModuleOptions` 继承自 ioredis 的 `RedisOptions`，额外支持：
+
+| 参数            | 类型                      | 说明                                  |
+| --------------- | ------------------------- | ------------------------------------- |
+| `clientName`    | `string`                  | 客户端名称，用于多客户端场景区分实例  |
+| `url`           | `string`                  | Redis 连接 URL，优先于 host/port 配置 |
+| `onClientReady` | `(client: Redis) => void` | 客户端就绪回调                        |
+
+其他所有 ioredis 配置项均可使用，详见 [ioredis 文档](https://github.com/redis/ioredis#connect-to-redis)。
 
 ## License
 
-MIT
+ISC

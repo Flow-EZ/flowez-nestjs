@@ -1,7 +1,7 @@
 {
-  "name": "@flowez/nestjs-minio",
-  "version": "0.0.2",
-  "description": "",
+  "name": "@flow-ez/nestjs-minio",
+  "version": "0.0.1",
+  "description": "NestJS MinIO module for object storage",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -22,5 +22,11 @@
   "license": "ISC",
   "dependencies": {
     "minio": "^8.0.1"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^10.0.0 || ^11.0.0",
+    "@nestjs/core": "^10.0.0 || ^11.0.0",
+    "reflect-metadata": "^0.1.13 || ^0.2.0",
+    "minio": "^8.0.0"
   }
 }

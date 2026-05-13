@@ -1,0 +1,58 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to publish'
+        required: true
+        type: choice
+        options:
+          - redis
+          - minio
+          - all
+      tag:
+        description: 'npm dist-tag (latest or next)'
+        required: false
+        default: 'latest'
+        type: choice
+        options:
+          - latest
+          - next
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish redis
+        if: inputs.package == 'redis' || inputs.package == 'all'
+        working-directory: packages/redis
+        run: npm publish --access public --tag ${{ inputs.tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish minio
+        if: inputs.package == 'minio' || inputs.package == 'all'
+        working-directory: packages/minio
+        run: npm publish --access public --tag ${{ inputs.tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

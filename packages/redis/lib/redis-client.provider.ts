@@ -64,7 +64,7 @@ export const redisClientsProvider = (): FactoryProvider => ({
           const key = option.clientName || defaultName;
           if (clients.has(key)) {
             throw new RedisClientError(
-              `${option.clientName || 'default'} client is exists`,
+              `${option.clientName || 'default'} client already exists`,
             );
           }
           clients.set(key, await createClient(option));

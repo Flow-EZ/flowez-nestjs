@@ -69,8 +69,8 @@ export class RedisCoreModule implements OnApplicationShutdown {
 
   async onApplicationShutdown(): Promise<void> {
     const closeConnection =
-      ({ clients, name }) =>
-      (options) => {
+      ({ clients, name }: RedisClient) =>
+      (options: RedisModuleOptions) => {
         const key = options.clientName || name;
         const client = clients.get(key);
 

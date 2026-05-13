@@ -63,7 +63,7 @@ export const minioClientsProvider = (): FactoryProvider => ({
           const key = option.clientName || defaultName;
           if (clients.has(key)) {
             throw new MinioClientError(
-              `${option.clientName || 'default'} client is exists`,
+              `${option.clientName || 'default'} client already exists`,
             );
           }
           clients.set(key, await createClient(option));

@@ -10,13 +10,12 @@ export class MinioService {
   ) {}
 
   getClient(clientName?: string): Minio.Client {
-    if (!clientName) {
-      clientName = this.minioClient.name;
+    const name = clientName || this.minioClient.name;
+    const client = this.minioClient.clients.get(name);
+    if (!client) {
+      throw new MinioClientError(`client ${name} does not exist`);
     }
-    if (!this.minioClient.clients.has(clientName)) {
-      throw new MinioClientError(`client ${clientName} does not exist`);
-    }
-    return this.minioClient.clients.get(clientName);
+    return client;
   }
 
   getClients(): Map<string, Minio.Client> {

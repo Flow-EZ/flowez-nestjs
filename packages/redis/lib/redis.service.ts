@@ -10,13 +10,12 @@ export class RedisService {
   ) {}
 
   getClient(clientName?: string): Redis {
-    if (!clientName) {
-      clientName = this.redisClient.name;
+    const name = clientName || this.redisClient.name;
+    const client = this.redisClient.clients.get(name);
+    if (!client) {
+      throw new RedisClientError(`client ${name} does not exist`);
     }
-    if (!this.redisClient.clients.has(clientName)) {
-      throw new RedisClientError(`client ${clientName} does not exist`);
-    }
-    return this.redisClient.clients.get(clientName);
+    return client;
   }
 
   getClients(): Map<string, Redis> {
