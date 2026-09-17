@@ -1,6 +1,6 @@
 {
   "name": "@flow-ez/nestjs-minio",
-  "version": "0.0.1",
+  "version": "0.0.2-rc.0",
   "description": "NestJS MinIO module for object storage with multi-client support and async configuration",
   "type": "module",
   "main": "./dist/index.js",
