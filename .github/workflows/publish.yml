@@ -51,6 +51,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -84,63 +85,41 @@ jobs:
           esac
 
           read_pkg() {
-            node -p "JSON.parse(require('fs').readFileSync('$1','utf8')).$2"
+            node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).$1"
           }
 
           bump_pkg() {
             local dir="$1"
-            local pkg="packages/${dir}/package.json"
-            local before name version
-            before="$(read_pkg "${pkg}" version)"
+            pushd "packages/${dir}" >/dev/null
             if [ "${BUMP}" = 'prerelease' ]; then
-              pnpm --filter "./packages/${dir}" version prerelease --preid="${PREID}" --no-git-tag-version
+              pnpm version prerelease --preid="${PREID}" --no-git-tag-version >/dev/null
             else
-              pnpm --filter "./packages/${dir}" version "${BUMP}" --no-git-tag-version
+              pnpm version "${BUMP}" --no-git-tag-version >/dev/null
             fi
-            name="$(read_pkg "${pkg}" name)"
-            version="$(read_pkg "${pkg}" version)"
-            if [ "${before}" = "${version}" ]; then
-              echo "::error::${name} version did not change (${version})"
-              exit 1
-            fi
-            echo "${dir} ${name} ${version}"
+            local name version
+            name="$(read_pkg name)"
+            version="$(read_pkg version)"
+            popd >/dev/null
+            git add "packages/${dir}/package.json"
+            echo "${name}@${version}"
           }
 
-          dirs=()
+          released=()
           if [ "${PACKAGE}" = 'redis' ] || [ "${PACKAGE}" = 'all' ]; then
-            dirs+=('redis')
+            released+=("$(bump_pkg redis)")
           fi
           if [ "${PACKAGE}" = 'minio' ] || [ "${PACKAGE}" = 'all' ]; then
-            dirs+=('minio')
+            released+=("$(bump_pkg minio)")
           fi
-
-          bumped=()
-          for dir in "${dirs[@]}"; then
-            bumped+=("$(bump_pkg "${dir}")")
-          done
 
           pnpm build
+          git commit --no-verify -m "chore: release ${released[*]}"
 
-          published=()
-          failed=0
-          for entry in "${bumped[@]}"; do
-            dir="${entry%% *}"
-            rest="${entry#* }"
-            name="${rest%% *}"
-            version="${rest#* }"
-            if pnpm --filter "./packages/${dir}" publish --access public --tag "${TAG}" --no-git-checks --provenance; then
-              published+=("${name}@${version}")
-              git add "packages/${dir}/package.json"
-            else
-              echo "::error::failed to publish ${name}@${version}"
-              git checkout -- "packages/${dir}/package.json"
-              failed=1
-            fi
-          done
-
-          if [ ${#published[@]} -gt 0 ]; then
-            git commit --no-verify -m "chore: release ${published[*]}"
-            git push origin "HEAD:${BRANCH}"
+          if [ "${PACKAGE}" = 'redis' ] || [ "${PACKAGE}" = 'all' ]; then
+            pnpm --dir packages/redis publish --access public --tag "${TAG}" --no-git-checks --provenance
+          fi
+          if [ "${PACKAGE}" = 'minio' ] || [ "${PACKAGE}" = 'all' ]; then
+            pnpm --dir packages/minio publish --access public --tag "${TAG}" --no-git-checks --provenance
           fi
 
-          exit "${failed}"
+          git push origin "HEAD:${BRANCH}"
