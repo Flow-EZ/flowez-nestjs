@@ -1,6 +1,9 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import { MinioModuleOptions, MinioModuleAsyncOptions } from './interfaces';
-import { MinioCoreModule } from './minio-core.module';
+import type {
+  MinioModuleOptions,
+  MinioModuleAsyncOptions,
+} from './interfaces/index.js';
+import { MinioCoreModule } from './minio-core.module.js';
 
 @Module({})
 export class MinioModule {

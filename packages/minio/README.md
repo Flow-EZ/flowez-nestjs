@@ -16,7 +16,7 @@ NestJS 的 MinIO 模块，基于 [minio-js](https://github.com/minio/minio-js) �
 pnpm add @flow-ez/nestjs-minio
 ```
 
-需要同时安装 peer dependencies：
+需要同时安装 peer dependencies（NestJS 12、minio 8）：
 
 ```bash
 pnpm add @nestjs/common @nestjs/core minio

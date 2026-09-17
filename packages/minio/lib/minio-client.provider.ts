@@ -1,17 +1,17 @@
-import { FactoryProvider, Provider, ValueProvider } from '@nestjs/common';
+import type { FactoryProvider, Provider, ValueProvider } from '@nestjs/common';
 import * as Minio from 'minio';
 import {
   MINIO_MODULE_OPTIONS,
   MINIO_CLIENT,
   DEFAULT_MINIO_CLIENT,
-} from './minio.constants';
-import {
+} from './minio.constants.js';
+import type {
   MinioModuleOptions,
   MinioModuleAsyncOptions,
   MinioOptionsFactory,
-} from './interfaces';
-import { namespaces } from './minio.decorator';
-import { MinioService } from './minio.service';
+} from './interfaces/index.js';
+import { namespaces } from './minio.decorator.js';
+import { MinioService } from './minio.service.js';
 
 export class MinioClientError extends Error {}
 
@@ -58,17 +58,15 @@ export const minioClientsProvider = (): FactoryProvider => ({
     let defaultName = DEFAULT_MINIO_CLIENT;
 
     if (Array.isArray(options)) {
-      await Promise.all(
-        options.map(async (option) => {
-          const key = option.clientName || defaultName;
-          if (clients.has(key)) {
-            throw new MinioClientError(
-              `${option.clientName || 'default'} client already exists`,
-            );
-          }
-          clients.set(key, await createClient(option));
-        }),
-      );
+      for (const option of options) {
+        const key = option.clientName || defaultName;
+        if (clients.has(key)) {
+          throw new MinioClientError(
+            `${option.clientName || 'default'} client already exists`,
+          );
+        }
+        clients.set(key, await createClient(option));
+      }
     } else {
       if (options.clientName && options.clientName.length !== 0) {
         defaultName = options.clientName;

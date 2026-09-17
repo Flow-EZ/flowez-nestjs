@@ -5,16 +5,19 @@ import {
   Inject,
   OnApplicationShutdown,
 } from '@nestjs/common';
-import { RedisModuleAsyncOptions, RedisModuleOptions } from './interfaces';
+import type {
+  RedisModuleAsyncOptions,
+  RedisModuleOptions,
+} from './interfaces/index.js';
+import type { RedisClient } from './redis-client.provider.js';
 import {
   createAsyncClientOptions,
   createOptionsProvider,
   createRedisClientProviders,
   redisClientsProvider,
-  RedisClient,
-} from './redis-client.provider';
-import { REDIS_MODULE_OPTIONS, REDIS_CLIENT } from './redis.constants';
-import { RedisService } from './redis.service';
+} from './redis-client.provider.js';
+import { REDIS_MODULE_OPTIONS, REDIS_CLIENT } from './redis.constants.js';
+import { RedisService } from './redis.service.js';
 
 @Global()
 @Module({})

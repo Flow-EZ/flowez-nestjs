@@ -1,29 +1,36 @@
 # @flow-ez/nestjs
 
-NestJS 工具模块集合，提供常用第三方服务的开箱即用集成。
+NestJS 工具模块集合，把常用第三方客户端封装成 `forRoot` / `forRootAsync` 全局模块，支持多实例注入。
+
+当前面向 **NestJS 12**。各包把具体 SDK 声明为 peer dependency，由应用安装，避免类型和运行时各打一份。
 
 ## 包列表
 
-| 包名                                      | 版本  | 说明                     |
-| ----------------------------------------- | ----- | ------------------------ |
-| [@flow-ez/nestjs-redis](./packages/redis) | 0.0.1 | Redis 模块，基于 ioredis |
-| [@flow-ez/nestjs-minio](./packages/minio) | 0.0.1 | MinIO 对象存储模块       |
+| 包                                        | 说明                                                                | Peer         |
+| ----------------------------------------- | ------------------------------------------------------------------- | ------------ |
+| [@flow-ez/nestjs-redis](./packages/redis) | Redis 模块，基于 [ioredis](https://github.com/redis/ioredis)        | `ioredis` ^6 |
+| [@flow-ez/nestjs-minio](./packages/minio) | MinIO 对象存储模块，基于 [minio](https://github.com/minio/minio-js) | `minio` ^8   |
+
+公共 peer：`@nestjs/common` ^12、`@nestjs/core` ^12、`reflect-metadata` ^0.2。
 
 ## 安装
 
 ```bash
-# Redis
-pnpm add @flow-ez/nestjs-redis
-
-# MinIO
-pnpm add @flow-ez/nestjs-minio
+pnpm add @flow-ez/nestjs-redis ioredis
+pnpm add @flow-ez/nestjs-minio minio
 ```
 
-## 使用
+NestJS 12 应用里通常已有 `@nestjs/common`、`@nestjs/core`、`reflect-metadata`。
 
-### Redis
+完整 API 见各包 README：
+
+- [packages/redis/README.md](./packages/redis/README.md)
+- [packages/minio/README.md](./packages/minio/README.md)
+
+## Redis
 
 ```typescript
+import { Module } from '@nestjs/common';
 import { RedisModule } from '@flow-ez/nestjs-redis';
 
 @Module({
@@ -37,7 +44,7 @@ import { RedisModule } from '@flow-ez/nestjs-redis';
 export class AppModule {}
 ```
 
-注入 Redis 客户端：
+注入客户端：
 
 ```typescript
 import { InjectRedis } from '@flow-ez/nestjs-redis';
@@ -48,6 +55,8 @@ export class CatsService {
   constructor(@InjectRedis() private readonly redis: Redis) {}
 }
 ```
+
+或使用 `RedisService.getClient()` / `getClients()`。
 
 异步配置：
 
@@ -69,13 +78,15 @@ RedisModule.forRoot([
   { clientName: 'queue', host: 'localhost', port: 6380 },
 ]);
 
-// 注入指定客户端
-@InjectRedis('cache') private readonly cacheRedis: Redis
+// @InjectRedis('cache') private readonly cacheRedis: Redis
 ```
 
-### MinIO
+也支持 `url`、`onClientReady`。应用关闭时会 `disconnect()`；配置了 `keepAlive` 则跳过断开。
+
+## MinIO
 
 ```typescript
+import { Module } from '@nestjs/common';
 import { MinioModule } from '@flow-ez/nestjs-minio';
 
 @Module({
@@ -92,7 +103,7 @@ import { MinioModule } from '@flow-ez/nestjs-minio';
 export class AppModule {}
 ```
 
-注入 MinIO 客户端：
+注入客户端：
 
 ```typescript
 import { InjectMinio } from '@flow-ez/nestjs-minio';
@@ -104,36 +115,19 @@ export class StorageService {
 }
 ```
 
-异步配置：
-
-```typescript
-MinioModule.forRootAsync({
-  useFactory: (configService: ConfigService) => ({
-    endPoint: configService.get('MINIO_ENDPOINT'),
-    port: configService.get('MINIO_PORT'),
-    useSSL: false,
-    accessKey: configService.get('MINIO_ACCESS_KEY'),
-    secretKey: configService.get('MINIO_SECRET_KEY'),
-  }),
-  inject: [ConfigService],
-});
-```
+或使用 `MinioService.getClient()` / `getClients()`。`forRootAsync` 与多客户端用法与 Redis 相同，用 `clientName` + `@InjectMinio('public')` 区分实例。
 
 ## 开发
 
 ```bash
-# 安装依赖
 pnpm install
-
-# 构建所有包
 pnpm build
-
-# 格式化代码
+pnpm test
 pnpm format
-
-# 检查格式
 pnpm check
 ```
+
+测试用 `@nestjs/testing` 编译模块，ioredis / minio 在用例里 mock，不依赖本地 Redis 或 MinIO。
 
 ## License
 

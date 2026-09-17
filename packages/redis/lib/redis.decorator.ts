@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { DEFAULT_REDIS_CLIENT } from './redis.constants';
+import { DEFAULT_REDIS_CLIENT } from './redis.constants.js';
 
 export const namespaces = new Map<string, string>();
 

@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { DEFAULT_MINIO_CLIENT } from './minio.constants';
+import { DEFAULT_MINIO_CLIENT } from './minio.constants.js';
 
 export const namespaces = new Map<string, string>();
 

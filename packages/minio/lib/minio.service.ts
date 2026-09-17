@@ -1,7 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
-import * as Minio from 'minio';
-import { MINIO_CLIENT } from './minio.constants';
-import { MinioClient, MinioClientError } from './minio-client.provider';
+import type * as Minio from 'minio';
+import { MINIO_CLIENT } from './minio.constants.js';
+import type { MinioClient } from './minio-client.provider.js';
+import { MinioClientError } from './minio-client.provider.js';
 
 @Injectable()
 export class MinioService {

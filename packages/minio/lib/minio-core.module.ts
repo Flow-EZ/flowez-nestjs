@@ -1,14 +1,17 @@
 import { DynamicModule, Global, Module, Inject } from '@nestjs/common';
-import { MinioModuleOptions, MinioModuleAsyncOptions } from './interfaces';
+import type {
+  MinioModuleOptions,
+  MinioModuleAsyncOptions,
+} from './interfaces/index.js';
+import type { MinioClient } from './minio-client.provider.js';
 import {
   createAsyncClientOptions,
   createOptionsProvider,
   createMinioClientProviders,
   minioClientsProvider,
-  MinioClient,
-} from './minio-client.provider';
-import { MINIO_MODULE_OPTIONS, MINIO_CLIENT } from './minio.constants';
-import { MinioService } from './minio.service';
+} from './minio-client.provider.js';
+import { MINIO_MODULE_OPTIONS, MINIO_CLIENT } from './minio.constants.js';
+import { MinioService } from './minio.service.js';
 
 @Global()
 @Module({})

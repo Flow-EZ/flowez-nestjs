@@ -18,7 +18,7 @@ NestJS 的 Redis 模块，基于 [ioredis](https://github.com/redis/ioredis) 封
 pnpm add @flow-ez/nestjs-redis
 ```
 
-需要同时安装 peer dependencies：
+需要同时安装 peer dependencies（NestJS 12、ioredis 6）：
 
 ```bash
 pnpm add @nestjs/common @nestjs/core ioredis
@@ -237,6 +237,10 @@ RedisModule.forRoot({
 | `onClientReady` | `(client: Redis) => void` | 客户端就绪回调                        |
 
 其他所有 ioredis 配置项均可使用，详见 [ioredis 文档](https://github.com/redis/ioredis#connect-to-redis)。
+
+## 关闭连接
+
+`RedisCoreModule` 在应用关闭时对每个客户端调用 `disconnect()`。如果该客户端配置了 ioredis 的 `keepAlive`，则跳过断开（把连接留给进程外复用）。
 
 ## License
 

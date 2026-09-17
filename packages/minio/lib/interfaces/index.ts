@@ -1,1 +1,1 @@
-export * from './minio-options.interface';
+export * from './minio-options.interface.js';

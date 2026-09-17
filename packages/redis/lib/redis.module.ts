@@ -1,6 +1,9 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import { RedisModuleOptions, RedisModuleAsyncOptions } from './interfaces';
-import { RedisCoreModule } from './redis-core.module';
+import type {
+  RedisModuleOptions,
+  RedisModuleAsyncOptions,
+} from './interfaces/index.js';
+import { RedisCoreModule } from './redis-core.module.js';
 
 @Module({})
 export class RedisModule {

@@ -11,48 +11,116 @@ on:
           - redis
           - minio
           - all
-      tag:
-        description: 'npm dist-tag (latest or next)'
-        required: false
-        default: 'latest'
+      release:
+        description: 'alpha/beta/rc = prerelease; patch/minor/major = stable latest'
+        required: true
         type: choice
+        default: rc
         options:
-          - latest
-          - next
+          - alpha
+          - beta
+          - rc
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+env:
+  CI: true
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   publish:
+    needs: ci
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
-      contents: read
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
+          cache: pnpm
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
-
-      - name: Publish redis
-        if: inputs.package == 'redis' || inputs.package == 'all'
-        working-directory: packages/redis
-        run: npm publish --access public --tag ${{ inputs.tag }}
+      - name: Bump, build, publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PACKAGE: ${{ inputs.package }}
+          RELEASE: ${{ inputs.release }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
 
-      - name: Publish minio
-        if: inputs.package == 'minio' || inputs.package == 'all'
-        working-directory: packages/minio
-        run: npm publish --access public --tag ${{ inputs.tag }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          case "${RELEASE}" in
+            alpha|beta|rc)
+              BUMP=prerelease
+              PREID="${RELEASE}"
+              TAG="${RELEASE}"
+              ;;
+            patch|minor|major)
+              BUMP="${RELEASE}"
+              PREID=
+              TAG=latest
+              ;;
+            *)
+              echo "::error::unknown release ${RELEASE}"
+              exit 1
+              ;;
+          esac
+
+          read_pkg() {
+            node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).$1"
+          }
+
+          bump_pkg() {
+            local dir="$1"
+            pushd "packages/${dir}" >/dev/null
+            if [ "${BUMP}" = 'prerelease' ]; then
+              pnpm version prerelease --preid="${PREID}" --no-git-tag-version >/dev/null
+            else
+              pnpm version "${BUMP}" --no-git-tag-version >/dev/null
+            fi
+            local name version
+            name="$(read_pkg name)"
+            version="$(read_pkg version)"
+            popd >/dev/null
+            git add "packages/${dir}/package.json"
+            echo "${name}@${version}"
+          }
+
+          released=()
+          if [ "${PACKAGE}" = 'redis' ] || [ "${PACKAGE}" = 'all' ]; then
+            released+=("$(bump_pkg redis)")
+          fi
+          if [ "${PACKAGE}" = 'minio' ] || [ "${PACKAGE}" = 'all' ]; then
+            released+=("$(bump_pkg minio)")
+          fi
+
+          pnpm build
+          git commit --no-verify -m "chore: release ${released[*]}"
+
+          if [ "${PACKAGE}" = 'redis' ] || [ "${PACKAGE}" = 'all' ]; then
+            pnpm --dir packages/redis publish --access public --tag "${TAG}" --no-git-checks --provenance
+          fi
+          if [ "${PACKAGE}" = 'minio' ] || [ "${PACKAGE}" = 'all' ]; then
+            pnpm --dir packages/minio publish --access public --tag "${TAG}" --no-git-checks --provenance
+          fi
+
+          git push origin "HEAD:${BRANCH}"

@@ -1,17 +1,17 @@
-import { FactoryProvider, Provider, ValueProvider } from '@nestjs/common';
-import IORedis, { Redis } from 'ioredis';
+import type { FactoryProvider, Provider, ValueProvider } from '@nestjs/common';
+import { Redis } from 'ioredis';
 import {
   REDIS_CLIENT,
   REDIS_MODULE_OPTIONS,
   DEFAULT_REDIS_CLIENT,
-} from './redis.constants';
-import {
+} from './redis.constants.js';
+import type {
   RedisModuleAsyncOptions,
   RedisModuleOptions,
   RedisOptionsFactory,
-} from './interfaces';
-import { namespaces } from './redis.decorator';
-import { RedisService } from './redis.service';
+} from './interfaces/index.js';
+import { namespaces } from './redis.decorator.js';
+import { RedisService } from './redis.service.js';
 
 export class RedisClientError extends Error {}
 
@@ -43,7 +43,7 @@ export const createRedisClientProviders = (): FactoryProvider<Redis>[] => {
 
 async function createClient(options: RedisModuleOptions): Promise<Redis> {
   const { onClientReady, url, ...opt } = options;
-  const client = url ? new IORedis(url, opt) : new IORedis(opt);
+  const client = url ? new Redis(url, opt) : new Redis(opt);
   if (onClientReady) {
     onClientReady(client);
   }
@@ -59,17 +59,15 @@ export const redisClientsProvider = (): FactoryProvider => ({
     let defaultName = DEFAULT_REDIS_CLIENT;
 
     if (Array.isArray(options)) {
-      await Promise.all(
-        options.map(async (option) => {
-          const key = option.clientName || defaultName;
-          if (clients.has(key)) {
-            throw new RedisClientError(
-              `${option.clientName || 'default'} client already exists`,
-            );
-          }
-          clients.set(key, await createClient(option));
-        }),
-      );
+      for (const option of options) {
+        const key = option.clientName || defaultName;
+        if (clients.has(key)) {
+          throw new RedisClientError(
+            `${option.clientName || 'default'} client already exists`,
+          );
+        }
+        clients.set(key, await createClient(option));
+      }
     } else {
       if (options.clientName && options.clientName.length !== 0) {
         defaultName = options.clientName;
